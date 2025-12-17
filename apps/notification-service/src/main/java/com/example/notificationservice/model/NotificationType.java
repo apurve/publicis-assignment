@@ -1,0 +1,17 @@
+package com.example.notificationservice.model;
+
+/**
+ * Notification Type Enum
+ */
+public enum NotificationType {
+    BOOKING_CONFIRMED,
+    BOOKING_CANCELLED,
+    PAYMENT_SUCCESS,
+    PAYMENT_FAILED,
+    SERVICE_REQUEST_CREATED,
+    SERVICE_REQUEST_ASSIGNED,
+    SERVICE_REQUEST_COMPLETED,
+    VISITOR_APPROVAL_REQUESTED,
+    VISITOR_APPROVED,
+    SYSTEM_ANNOUNCEMENT
+}

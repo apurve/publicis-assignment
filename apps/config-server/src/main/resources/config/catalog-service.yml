@@ -1,0 +1,12 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9093
+    admin:
+      auto-create: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: com.example.catalogservice.serializer.BookingRequestSerializer
+      properties:
+        replication.factor: 1
+    properties:
+      default.replication.factor: 1

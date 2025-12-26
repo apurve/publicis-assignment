@@ -22,10 +22,10 @@ public class BookingConsumer {
         try {
             logger.info("Received booking request from Kafka: {}", request);
             
-            logger.info("Processing booking for user: {}, amenity: {}", request.getUserId(), request.getAmenityId());
-            bookingService.createBooking(request.getUserId(), request.getAmenityId(), request.getStartTime(), request.getEndTime());
+            logger.info("Processing booking for user: {}, amenity: {}", request.userId(), request.amenityId());
+            bookingService.createBooking(request.userId(), request.amenityId(), request.startTime(), request.endTime());
             
-            logger.info("Successfully processed booking for user: {}, amenity: {}", request.getUserId(), request.getAmenityId());
+            logger.info("Successfully processed booking for user: {}, amenity: {}", request.userId(), request.amenityId());
         } catch (Exception e) {
             logger.error("Failed to process booking request: {}", e.getMessage(), e);
         }

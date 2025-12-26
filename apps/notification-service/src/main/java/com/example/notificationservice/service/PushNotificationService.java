@@ -37,9 +37,9 @@ public class PushNotificationService {
     public Mono<Void> sendPushNotification(Notification notification) {
         return Mono.delay(Duration.ofMillis(100)) // Simulate API call delay
                 .doOnNext(i -> log.info("📱 [PUSH] Sent to user {}: {} - {}", 
-                        notification.getUserId(),
-                        notification.getTitle(),
-                        notification.getMessage()))
+                        notification.userId(),
+                        notification.title(),
+                        notification.message()))
                 .then();
     }
 }

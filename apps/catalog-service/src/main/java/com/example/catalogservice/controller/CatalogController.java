@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import java.util.List;
 
@@ -65,8 +66,13 @@ public class CatalogController {
             )
     })
     @PostMapping("/bookings")
+    @CircuitBreaker(name = "booking", fallbackMethod = "bookingFallback")
     public ResponseEntity<String> requestBooking(@RequestBody BookingRequestDto request) {
         bookingProducer.sendBookingRequest(request);
         return ResponseEntity.accepted().body("{\"message\": \"Booking request submitted\", \"status\": \"PENDING\"}");
+    }
+
+    public ResponseEntity<String> bookingFallback(BookingRequestDto request, Throwable t) {
+        return ResponseEntity.status(503).body("{\"message\": \"Booking service is currently unavailable. Please try again later.\", \"status\": \"FAILED\"}");
     }
 }

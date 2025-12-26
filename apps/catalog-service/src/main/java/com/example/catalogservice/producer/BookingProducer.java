@@ -19,7 +19,7 @@ public class BookingProducer {
     
     public void sendBookingRequest(BookingRequestDto request) {
         logger.info("Sending booking request to Kafka topic '{}': userId={}, serviceId={}", 
-            TOPIC, request.getUserId(), request.getServiceId());
+            TOPIC, request.userId(), request.serviceId());
         kafkaTemplate.send(TOPIC, request);
         logger.info("Successfully sent booking request to Kafka");
     }

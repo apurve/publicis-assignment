@@ -27,9 +27,9 @@ public class EmailNotificationService {
     public Mono<Void> sendEmail(Notification notification) {
         return Mono.delay(Duration.ofMillis(100)) // Simulate network delay
                 .doOnNext(i -> log.info("📧 [EMAIL] Sent to user {}: {} - {}", 
-                        notification.getUserId(),
-                        notification.getTitle(),
-                        notification.getMessage()))
+                        notification.userId(),
+                        notification.title(),
+                        notification.message()))
                 .then(); // Convert to Mono<Void>
     }
 }

@@ -62,7 +62,7 @@ public class NotificationStreamService {
         Sinks.EmitResult result = notificationSink.tryEmitNext(notification);
         
         if (result.isSuccess()) {
-            log.info("📡 Broadcast notification {} to all subscribers", notification.getId());
+            log.info("📡 Broadcast notification {} to all subscribers", notification.id());
         } else {
             log.warn("Failed to emit notification: {}", result);
         }
@@ -79,7 +79,7 @@ public class NotificationStreamService {
         log.info("New SSE subscriber for user: {}", userId);
         
         return notificationFlux
-                .filter(notification -> notification.getUserId().equals(userId))
+                .filter(notification -> notification.userId().equals(userId))
                 .doOnSubscribe(sub -> log.info("User {} subscribed to notification stream", userId))
                 .doOnCancel(() -> log.info("User {} unsubscribed from notification stream", userId));
     }
@@ -96,12 +96,9 @@ public class NotificationStreamService {
         
         // Heartbeat every 30 seconds (empty notification as keep-alive)
         Flux<Notification> heartbeat = Flux.interval(Duration.ofSeconds(30))
-                .map(tick -> {
-                    Notification heartbeatNotif = new Notification();
-                    heartbeatNotif.setUserId(userId);
-                    heartbeatNotif.setTitle("heartbeat");
-                    return heartbeatNotif;
-                });
+                .map(tick -> new Notification(
+                        null, userId, "heartbeat", null, null, null, null, null, null, null, null
+                ));
         
         // Merge both streams
         return Flux.merge(userNotifications, heartbeat);

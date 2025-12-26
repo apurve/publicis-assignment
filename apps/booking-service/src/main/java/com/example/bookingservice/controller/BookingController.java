@@ -60,10 +60,10 @@ public class BookingController {
     public ResponseEntity<BookingResponse> createBooking(@RequestBody BookingRequest request) {
         try {
             Booking booking = bookingService.createBooking(
-                    request.getUserId(),
-                    request.getAmenityId(),
-                    request.getStartTime(),
-                    request.getEndTime()
+                    request.userId(),
+                    request.amenityId(),
+                    request.startTime(),
+                    request.endTime()
             );
 
             BookingResponse response = new BookingResponse(

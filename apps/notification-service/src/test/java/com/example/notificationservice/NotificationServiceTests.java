@@ -36,22 +36,22 @@ class NotificationServiceTests {
      */
     @Test
     void testSaveNotification() {
-        Notification notification = new Notification();
-        notification.setUserId(1L);
-        notification.setTitle("Test Notification");
-        notification.setMessage("Test Message");
-        // Set required enum fields to avoid NOT NULL constraint violations
-        notification.setNotificationType(com.example.notificationservice.model.NotificationType.BOOKING_CONFIRMED);
-        notification.setChannel(com.example.notificationservice.model.NotificationChannel.IN_APP);
+        Notification notification = Notification.create(
+            1L,
+            "Test Notification",
+            "Test Message",
+            com.example.notificationservice.model.NotificationType.BOOKING_CONFIRMED,
+            com.example.notificationservice.model.NotificationChannel.IN_APP
+        );
 
         Mono<Notification> savedMono = repository.save(notification);
 
         // StepVerifier tests the reactive stream
         StepVerifier.create(savedMono)
                 .assertNext(saved -> {
-                    assertThat(saved.getId()).isNotNull();
-                    assertThat(saved.getTitle()).isEqualTo("Test Notification");
-                    assertThat(saved.getUserId()).isEqualTo(1L);
+                    assertThat(saved.id()).isNotNull();
+                    assertThat(saved.title()).isEqualTo("Test Notification");
+                    assertThat(saved.userId()).isEqualTo(1L);
                 })
                 .verifyComplete();
     }

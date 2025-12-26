@@ -158,7 +158,7 @@ public class NotificationController {
     public Flux<ServerSentEvent<NotificationDto>> streamNotificationsWithSSE(@PathVariable Long userId) {
         return streamService.getNotificationStream(userId)
                 .map(notification -> ServerSentEvent.<NotificationDto>builder()
-                        .id(String.valueOf(notification.getId()))
+                        .id(String.valueOf(notification.id()))
                         .event("notification")
                         .data(notificationService.toDto(notification))
                         .build());

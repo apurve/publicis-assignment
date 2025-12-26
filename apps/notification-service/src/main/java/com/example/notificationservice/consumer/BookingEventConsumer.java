@@ -115,13 +115,13 @@ public class BookingEventConsumer {
         String title = "Booking Confirmation";
         String message = String.format(
                 "Your booking for %s has been confirmed for %s to %s",
-                bookingEvent.getServiceId(),
-                bookingEvent.getStartTime(),
-                bookingEvent.getEndTime()
+                bookingEvent.serviceId(),
+                bookingEvent.startTime(),
+                bookingEvent.endTime()
         );
         
-        return new Notification(
-                bookingEvent.getUserId(),
+        return Notification.create(
+                bookingEvent.userId(),
                 title,
                 message,
                 NotificationType.BOOKING_CONFIRMED,

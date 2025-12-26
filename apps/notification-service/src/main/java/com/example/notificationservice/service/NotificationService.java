@@ -50,7 +50,7 @@ public class NotificationService {
      * REACTIVE PATTERN: flatMap for async composition
      */
     public Mono<Notification> createAndSendNotification(Notification notification) {
-        log.info("Creating notification for user: {}", notification.getUserId());
+        log.info("Creating notification for user: {}", notification.userId());
         
         return notificationRepository.save(notification)
                 .flatMap(savedNotification -> {
@@ -61,13 +61,10 @@ public class NotificationService {
                     return Mono.zip(emailSent, pushSent)
                             .then(Mono.just(savedNotification));
                 })
-                .map(sent -> {
-                    sent.setStatus(NotificationStatus.SENT);
-                    return sent;
-                })
+                .map(sent -> sent.withStatus(NotificationStatus.SENT))
                 .flatMap(notificationRepository::save)
                 .doOnSuccess(n -> {
-                    log.info("Notification sent successfully: {}", n.getId());
+                    log.info("Notification sent successfully: {}", n.id());
                     // Emit to SSE stream for real-time updates
                     streamService.emitNotification(n);
                 })
@@ -79,8 +76,8 @@ public class NotificationService {
      * Send notification via email channel
      */
     private Mono<Void> sendViaEmail(Notification notification) {
-        if (notification.getChannel() == NotificationChannel.EMAIL || 
-            notification.getChannel() == NotificationChannel.IN_APP) {
+        if (notification.channel() == NotificationChannel.EMAIL || 
+            notification.channel() == NotificationChannel.IN_APP) {
             return emailService.sendEmail(notification);
         }
         return Mono.empty();
@@ -90,8 +87,8 @@ public class NotificationService {
      * Send notification via push channel
      */
     private Mono<Void> sendViaPush(Notification notification) {
-        if (notification.getChannel() == NotificationChannel.PUSH || 
-            notification.getChannel() == NotificationChannel.IN_APP) {
+        if (notification.channel() == NotificationChannel.PUSH || 
+            notification.channel() == NotificationChannel.IN_APP) {
             return pushService.sendPushNotification(notification);
         }
         return Mono.empty();
@@ -122,10 +119,10 @@ public class NotificationService {
     public Mono<Notification> markAsRead(Long notificationId) {
         return notificationRepository.findById(notificationId)
                 .flatMap(notification -> {
-                    notification.setIsRead(true);
-                    notification.setReadAt(LocalDateTime.now());
-                    notification.setStatus(NotificationStatus.READ);
-                    return notificationRepository.save(notification);
+                    Notification updated = notification.withIsRead(true)
+                            .withReadAt(LocalDateTime.now())
+                            .withStatus(NotificationStatus.READ);
+                    return notificationRepository.save(updated);
                 })
                 .doOnSuccess(n -> log.info("Notification marked as read: {}", notificationId));
     }
@@ -141,17 +138,17 @@ public class NotificationService {
      * Convert entity to DTO
      */
     public NotificationDto toDto(Notification notification) {
-        NotificationDto dto = new NotificationDto();
-        dto.setId(notification.getId());
-        dto.setUserId(notification.getUserId());
-        dto.setTitle(notification.getTitle());
-        dto.setMessage(notification.getMessage());
-        dto.setType(notification.getNotificationType());
-        dto.setChannel(notification.getChannel());
-        dto.setStatus(notification.getStatus());
-        dto.setIsRead(notification.getIsRead());
-        dto.setCreatedAt(notification.getCreatedAt());
-        dto.setReadAt(notification.getReadAt());
-        return dto;
+        return new NotificationDto(
+            notification.id(),
+            notification.userId(),
+            notification.title(),
+            notification.message(),
+            notification.notificationType(),
+            notification.channel(),
+            notification.status(),
+            notification.isRead(),
+            notification.createdAt(),
+            notification.readAt()
+        );
     }
 }

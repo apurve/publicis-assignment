@@ -1,6 +1,6 @@
 # Microservices Applications
 
-This directory contains the microservices for the system.
+This directory contains the microservices for Apartment Management System.
 
 ## Modules
 

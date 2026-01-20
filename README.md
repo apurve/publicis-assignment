@@ -108,6 +108,12 @@ mvn spring-boot:run
 
 ### Testing the Services
 
+**Unit Tests:**
+```bash
+# If you get java version mismatch error, run the following command
+mvn clean install -DargLine="-Dnet.bytebuddy.experimental=true"
+```
+
 **Catalog Service (with Redis caching):**
 ```bash
 # First request - cache miss

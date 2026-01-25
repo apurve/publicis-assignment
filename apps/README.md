@@ -1,75 +1,81 @@
-# Verification Guide
+# Verification Guide (Kubernetes)
 
-This document outlines the steps to verify the functionality of the Microservices Booking System, specifically focusing on the Kafka integration between the Catalog Service and Booking Service.
+This document outlines the steps to verify the functionality of the Microservices Booking System running on **Kubernetes**.
 
 ## 1. Infrastructure Status
 
-Ensure all infrastructure components are running:
+Ensure all pods are running:
 
-- **Kafka**: Port `9093` (External), `9092` (Internal)
-- **Zookeeper**: Port `2181`
-- **Redis**: Port `6379`
-- **Eureka Server**: Port `8761` (`http://localhost:8761`)
-- **Config Server**: Port `8888` (`http://localhost:8888/swagger-ui/index.html`)
+```bash
+kubectl get pods
+```
 
-## 2. Service Status
+Expected Output:
+- `kafka` (Running)
+- `zookeeper` (Running)
+- `redis` (Running)
+- `booking-service` (Running)
+- `catalog-service` (Running)
+- `notification-service` (Running)
 
-Ensure application services are running and registered with Eureka:
+## 2. Accessing Services
 
-- **Catalog Service**: Port `8081` (`http://localhost:8081/swagger-ui/index.html`)
-- **Booking Service**: Port `8080` (`http://localhost:8080/swagger-ui/index.html`)
-- **Notification Service**: Port `8082` (`http://localhost:8082/swagger-ui/index.html`)
+### Option 1: Ingress (Recommended)
+You can access services directly via `localhost` (Port 80):
+
+- **Catalog API**: `http://localhost/api/catalog/services`
+- **Booking API**: `http://localhost/api/bookings`
+- **Notification Stream**: `http://localhost/api/notifications/stream/user/1`
+
+### Option 2: Port Forwarding (Legacy/Debug)
+You can also forward ports to access services individually:
+
+```bash
+# Terminal 1 - Catalog Service
+kubectl port-forward svc/catalog-service 8081:8081
+
+# Terminal 2 - Booking Service
+kubectl port-forward svc/booking-service 8080:8080
+
+# Terminal 3 - Notification Service
+kubectl port-forward svc/notification-service 8082:8082
+```
 
 ## 3. Redis Caching Verification (Catalog Service)
 
-This test verifies that the Catalog Service correctly caches service data in Redis.
-
-### Step 3.1: First Request (Cache Miss)
-
+### Step 3.1: Trigger Cache Miss
 ```bash
-curl http://localhost:8081/api/catalog/services
+curl http://localhost/api/catalog/services
 ```
+*Expected Result*: Returns list of services. Latency: Higher.
 
-**Expected Catalog Service Logs:**
-```text
-INFO ... [nio-8081-exec-1] c.e.c.service.CatalogDataService : Generating services (cache miss)
-```
-
-### Step 3.2: Second Request (Cache Hit)
-
+### Step 3.2: Trigger Cache Hit
 ```bash
-curl http://localhost:8081/api/catalog/services
+curl http://localhost/api/catalog/services
 ```
+*Expected Result*: Returns list of services. Latency: Lower (served from Redis).
 
-**Expected Catalog Service Logs:**
-```text
-INFO ... [nio-8081-exec-2] c.e.c.service.CatalogDataService : Fetching services from Redis cache
-```
-
-### Step 3.3: Verify Redis Storage
-
-Check that data is stored in Redis:
-
+### Step 3.3: Inspect Redis
 ```bash
-# Check if key exists
-docker exec infrastructure-redis-1 redis-cli GET catalog:services
+# Get Redis Pod Name
+REDIS_POD=$(kubectl get pod -l app=redis -o jsonpath="{.items[0].metadata.name}")
 
-# Check TTL (should be ~600 seconds or less)
-docker exec infrastructure-redis-1 redis-cli TTL catalog:services
+# Check Cache Key
+kubectl exec $REDIS_POD -- redis-cli GET catalog:services
 ```
-
-**Expected Response:** JSON data with 8 services (Gym, Pool, Tennis, Hall, Plumbing, Electrical, Cleaning, Pest Control)
 
 ## 4. End-to-End Verification (Booking Flow)
 
-This test verifies that a booking request initiated in the Catalog Service is successfully published to Kafka and consumed by the Booking Service.
-
-### Step 4.1: Trigger Booking Request
-
-Send a POST request to the Catalog Service:
-
+### Step 4.1: Subscribe to Notifications (SSE)
+Open a terminal to listen for real-time updates:
 ```bash
-curl -X POST http://localhost:8081/api/catalog/bookings \
+curl -N http://localhost/api/notifications/stream/user/1
+```
+
+### Step 4.2: Trigger Booking Request
+In a separate terminal, submit a booking:
+```bash
+curl -X POST http://localhost/api/catalog/bookings \
   -H "Content-Type: application/json" \
   -d '{
     "userId": 1,
@@ -80,67 +86,36 @@ curl -X POST http://localhost:8081/api/catalog/bookings \
   }'
 ```
 
-**Expected Response:**
-```json
-{
-  "message": "Booking request submitted",
-  "status": "PENDING"
-}
-```
-
-### Step 4.2: Verify Catalog Service Logs
-
-Check the terminal running `catalog-service`. You should see logs indicating the message was sent:
-
-```text
-INFO ... [producer-1] c.e.c.producer.BookingProducer : Sending booking request to Kafka topic 'booking-requests': userId=1, serviceId=GYM
-INFO ... [producer-1] c.e.c.producer.BookingProducer : Successfully sent booking request to Kafka
-```
-
-### Step 4.3: Verify Booking Service Logs
-
-Check the terminal running `booking-service`. You should see logs indicating the message was received and processed:
-
-```text
-INFO ... [ntainer#0-0-C-1] c.e.b.consumer.BookingConsumer : Received booking request from Kafka: BookingRequest{userId=1, amenityId='GYM', startTime=2025-12-02T10:00, endTime=2025-12-02T11:00}
-INFO ... [ntainer#0-0-C-1] c.e.b.consumer.BookingConsumer : Processing booking for user: 1, amenity: GYM
-INFO ... [ntainer#0-0-C-1] c.e.b.consumer.BookingConsumer : Successfully processed booking for user: 1, amenity: GYM
-```
-
-### Step 4.4: Verify Notification Service (Reactive)
-
-Check the terminal running `notification-service`. You should see logs indicating the notification was created and broadcast:
-
-```text
-INFO ... [parallel-1] c.e.n.c.BookingEventConsumer : Received Kafka message: key=null, partition=0, offset=8
-INFO ... [parallel-1] c.e.n.c.BookingEventConsumer : Processing booking event: BookingEventDto{userId=1, serviceId='GYM', ...}
-INFO ... [parallel-1] c.e.n.s.NotificationStreamService : 📡 Broadcast notification 1 to all subscribers
-```
-
-Alternatively, invoke the SSE endpoint **before** step 4.1 to see the notification in real-time:
-```bash
-curl -N http://localhost:8082/api/notifications/stream/user/1
-```
+### Step 4.3: Verify Results
+1.  **Response**: You should receive a `202 Accepted` status with `{"status": "PENDING"}`.
+2.  **Notification**: The SSE terminal window should verify a new notification event.
+3.  **Logs**:
+    Check Booking Service logs to confirm processing:
+    ```bash
+    kubectl logs -l app=booking-service --tail=20
+    ```
 
 ## 5. Troubleshooting
 
-### Common Issues
+### Connection Refused
+If `curl` fails, ensure your `kubectl port-forward` commands are still running and haven't timed out.
 
-- **Connection Refused (Kafka)**: Ensure Kafka is running and accessible on port `9093`.
-- **Connection Refused (Redis)**: Ensure Redis is running on port `6379` via `docker-compose up -d`.
-- **Cache Not Working**: Check Redis logs with `docker logs infrastructure-redis-1`.
+### Kafka Issues
+If bookings are stuck in "PENDING" (no notification):
+1. check Kafka logs:
+   ```bash
+   kubectl logs -l app=kafka
+   ```
+2. Verify Notification Service logs:
+   ```bash
+   kubectl logs -l app=notification-service
+   ```
 
-### Resetting State
-
-If services get into a bad state:
-1. Stop all Java applications.
-2. Stop Docker containers: `cd apps/infrastructure && docker-compose down`
-3. Start Docker containers: `docker-compose up -d`
-4. Start services in order: Service Discovery → Config Server → Catalog/Booking Services.
-
-### Clearing Redis Cache
-
-To manually clear the catalog cache:
+### Reset System
+To restart all application pods:
 ```bash
-docker exec infrastructure-redis-1 redis-cli DEL catalog:services
+kubectl delete pod -l app=booking-service
+kubectl delete pod -l app=catalog-service
+kubectl delete pod -l app=notification-service
 ```
+Kubernetes will automatically recreate them.

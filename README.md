@@ -1,194 +1,140 @@
 # Microservices Applications
 
-This directory contains the microservices for Apartment Management System.
+This directory contains the microservices for the system, fully migrated to a **Kubernetes-native** architecture.
 
 ## Modules
 
-### 1. [Config Server](./config-server)
-A centralized configuration management service using Spring Cloud Config.
-- **Port**: 8888
-- **Features**:
-  - Native profile (local filesystem) configuration storage.
-  - Swagger UI integration at `http://localhost:8888/swagger-ui/index.html`.
-  - Registers with Service Discovery.
-
-### 2. [Service Discovery](./service-discovery)
-A service registry using Spring Cloud Netflix Eureka.
-- **Port**: 8761
-- **Features**:
-  - Eureka Server for service registration and discovery.
-  - Dashboard available at `http://localhost:8761`.
-
-### 3. [Booking Service](./booking-service)
-A booking and reservation management service for apartment amenities.
+### 1. [Booking Service](./apps/booking-service)
+A booking and reservation management service.
 - **Port**: 8080
-- **Features**:
-  - REST API for creating bookings.
-  - Business logic validation (maintenance fee, amenity availability).
-  - H2 in-memory database.
-  - **H2 Console** at `http://localhost:8080/h2-console`
-  - Registers with Service Discovery.
-  - **OpenAPI/Swagger UI** at `http://localhost:8080/swagger-ui/index.html`
-  - OpenAPI spec at `http://localhost:8080/v3/api-docs`
-  - **Kafka Consumer**: Processes booking events from `booking-requests` topic
+- **Database**: H2 (In-memory)
+- **Features**: REST API, Business Logic, OpenAPI/Swagger.
+- **Discovery**: Kubernetes DNS.
+- **Config**: Kubernetes ConfigMap (`booking-config`).
 
-### 4. [Catalog Service](./catalog-service)
-A service catalog management system for browsing apartment services.
+### 2. [Catalog Service](./apps/catalog-service)
+A service catalog management system.
 - **Port**: 8081
-- **Features**:
-  - Browse available services (amenities and repairs) with time slots.
-  - **8 Services**: Gym, Swimming Pool, Tennis Court, Party Hall, Plumbing, Electrical, Cleaning, Pest Control.
-  - **Redis Caching**: Services are cached in Redis with 10-minute TTL for improved performance.
-  - Initiate booking requests via Kafka.
-  - **OpenAPI/Swagger UI** at `http://localhost:8081/swagger-ui/index.html`
-  - **Kafka Producer**: Publishes booking events to Kafka
+- **Cache**: Redis.
+- **Features**: Service browsing, Async booking via Kafka.
+- **Discovery**: Kubernetes DNS.
+- **Config**: Kubernetes ConfigMap (`catalog-config`).
 
-### 5. [Notification Service](./notification-service) ⚡ **Reactive**
-A reactive notification service using Spring WebFlux for real-time notifications.
+### 3. [Notification Service](./apps/notification-service) ⚡ **Reactive**
+A reactive notification service.
 - **Port**: 8082
-- **Features**:
-  - **Spring WebFlux**: Fully reactive, non-blocking REST API
-  - **R2DBC**: Reactive database access with H2
-  - **H2 Console** at `http://localhost:8082/h2-console`
-  - **Reactor Kafka**: Reactive Kafka consumer for booking events
-  - **Server-Sent Events (SSE)**: Real-time notification streaming
-  - **Multi-channel**: Email, Push, SMS, In-App notifications (mock)
-  - **OpenAPI/Swagger UI** at `http://localhost:8082/swagger-ui/index.html`
-  - **Kafka Consumer**: Processes booking events reactively
+- **Stack**: Spring WebFlux, R2DBC (H2), Reactor Kafka.
+- **Features**: Real-time SSE notifications.
+- **Config**: Kubernetes ConfigMap (`notification-config`).
 
-### 6. [Infrastructure](./infrastructure)
-Infrastructure configuration for Kafka, Zookeeper, and Redis.
-- **Kafka Port**: 9093
-- **Zookeeper Port**: 2181
-- **Redis Port**: 6379
+### 4. [Infrastructure](./k8s/infrastructure)
+Kubernetes manifests for the supporting services:
+- **Kafka** (9092)
+- **Zookeeper** (2181)
+- **Redis** (6379)
 
 ## Getting Started
 
 ### Prerequisites
-- Java 17
-- Maven
 
-### Running the System
+- **Docker Desktop** (with Kubernetes enabled) OR **Minikube**
+- **Java 17**
+- **Maven**
+- **kubectl**
 
-#### 1. Start Infrastructure (Kafka, Zookeeper, Redis)
+### Quick Start
+
+1.  **Start Kubernetes**: Ensure your cluster is running (e.g. Docker Desktop status is green).
+
+2.  **Deploy System**:
+    Run the helper script to build images and apply Kubernetes manifests:
+    ```bash
+    ./deploy_k8s.sh
+    ```
+
+3.  **Verify Deployment**:
+    ```bash
+    kubectl get pods
+    ```
+    Wait until all pods (`booking-service`, `catalog-service`, `notification-service`, `kafka`, `redis`, `zookeeper`) are `Running`.
+
+### Deploy to Azure Kubernetes Service (AKS)
+
+To deploy this application to Azure AKS, use the provided automation script.
+
+**Prerequisites**:
+- **Azure CLI** (`az`): Install via `brew install azure-cli`
+- **Docker**
+- **kubectl**
+- An **Azure account** with an active subscription
+
+**Steps**:
+1.  **Run the deployment script**:
+    ```bash
+    ./deploy_aks.sh
+    ```
+2.  **Follow the interactive Azure login** prompt in your browser.
+3.  The script will automatically:
+    - Create a Resource Group (`rg-apurve-gupta-aks`)
+    - Create an Azure Container Registry (ACR)
+    - Create an AKS Cluster and attach the ACR
+    - Build and push Docker images to ACR
+    - Deploy manifests to AKS using Kustomize
+4.  **Verify**:
+    ```bash
+    kubectl get pods
+    kubectl get svc
+    ```
+
+> **Note**: The script modifies `k8s/kustomization.yaml` temporarily to set ACR image paths and then restores it.
+
+### Accessing Services
+
+#### Via Ingress (Recommended)
+
+An **NGINX Ingress Controller** is deployed with the application. Get the external IP:
 ```bash
-cd apps/infrastructure
-docker-compose up -d
+kubectl get svc -n ingress-nginx ingress-nginx-controller
 ```
 
-#### 2. Start Service Discovery
+Once you have the `EXTERNAL-IP`, access services at:
+| Service | URL |
+|---------|-----|
+| **Catalog API** | `http://<EXTERNAL-IP>/api/catalog` |
+| **Bookings API** | `http://<EXTERNAL-IP>/api/bookings` |
+| **Notifications API** | `http://<EXTERNAL-IP>/api/notifications` |
+
+> **Note**: On local clusters (Docker Desktop/Minikube), the external IP may show as `localhost` or `<pending>`. For Minikube, run `minikube tunnel`.
+
+#### Via Port Forwarding (Alternative)
+
+For direct access or debugging, use `kubectl port-forward`:
+
 ```bash
-cd apps/service-discovery
-mvn spring-boot:run
+# Catalog Service
+kubectl port-forward svc/catalog-service 8081:8081
+# URL: http://localhost:8081/swagger-ui/index.html
+
+# Booking Service
+kubectl port-forward svc/booking-service 8080:8080
+# URL: http://localhost:8080/swagger-ui/index.html
+
+# Notification Service
+kubectl port-forward svc/notification-service 8082:8082
+# URL: http://localhost:8082/swagger-ui/index.html
 ```
 
-#### 3. Start Config Server
-```bash
-cd apps/config-server
-mvn spring-boot:run
-```
+## Architecture Changes
 
-#### 4. Start Catalog Service
-```bash
-cd apps/catalog-service
-mvn spring-boot:run
-```
+This project has been refactored from a Spring Cloud ecosystem to **Cloud Native Kubernetes**:
 
-#### 5. Start Booking Service
-```bash
-cd apps/booking-service
-mvn spring-boot:run
-```
+| Feature | Old Approach | New Kubernetes Approach |
+|---------|--------------|-------------------------|
+| **Service Discovery** | Netflix Eureka | Kubernetes Service DNS (`http://service-name`) |
+| **Configuration** | Spring Cloud Config Server | Kubernetes ConfigMaps |
+| **Gateway/Routing** | (Direct/Zuul) | **NGINX Ingress Controller** |
+| **Orchestration** | Docker Compose | Kubernetes Deployments |
 
-#### 6. Start Notification Service (Reactive)
-```bash
-cd apps/notification-service
-mvn spring-boot:run
-```
+## Infrastructure
 
-### Testing the Services
-
-**Unit Tests:**
-```bash
-# If you get java version mismatch error, run the following command
-mvn clean install -DargLine="-Dnet.bytebuddy.experimental=true"
-```
-
-**Catalog Service (with Redis caching):**
-```bash
-# First request - cache miss
-curl http://localhost:8081/api/catalog/services
-
-# Second request - cache hit (faster)
-curl http://localhost:8081/api/catalog/services
-
-# Check Redis
-docker exec infrastructure-redis-1 redis-cli GET catalog:services
-```
-
-**Submit a booking:**
-```bash
-curl -X POST http://localhost:8081/api/catalog/bookings \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": 1,
-    "serviceId": "GYM",
-    "serviceType": "AMENITY",
-    "startTime": "2025-12-03T10:00:00",
-    "endTime": "2025-12-03T11:00:00"
-  }'
-```
-
-**Test Reactive Notification Service (SSE):**
-```bash
-# Open SSE stream in one terminal
-curl -N http://localhost:8082/api/notifications/stream/user/1
-
-# In another terminal, create a booking to trigger notification
-curl -X POST http://localhost:8081/api/catalog/bookings \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": 1,
-    "serviceId": "GYM",
-    "serviceType": "AMENITY",
-    "startTime": "2025-12-17T10:00:00",
-    "endTime": "2025-12-17T11:00:00"
-  }'
-
-# You should see the notification appear in real-time in the SSE stream!
-```
-
-**Check notifications for a user:**
-```bash
-# Get all notifications
-curl http://localhost:8082/api/notifications/user/1
-
-# Get unread count
-curl http://localhost:8082/api/notifications/user/1/unread-count
-```
-
-## Architecture
-- **Service Discovery** acts as the central registry.
-- **Config Server** registers with Service Discovery and provides configuration to other services.
-- **Catalog Service** uses Redis for caching service data and Kafka for async booking requests.
-- **Booking Service** consumes booking requests from Kafka and persists to H2 database.
-- **Notification Service** ⚡ reactive microservice using Spring WebFlux:
-  - Consumes booking events from Kafka reactively (Reactor Kafka)
-  - Stores notifications in H2 using R2DBC (reactive database)
-  - Streams real-time notifications via Server-Sent Events (SSE)
-  - Demonstrates reactive patterns: Mono, Flux, flatMap, hot publishers
-- **Infrastructure** provides Kafka, Zookeeper, and Redis via Docker Compose.
-
-## Technology Stack
-
-### Traditional Services (Blocking)
-- Spring Boot 3.2.0
-- Spring Web MVC
-- Spring Data JPA
-- Spring Kafka
-
-### Reactive Service (Non-blocking)
-- Spring WebFlux
-- Spring Data R2DBC
-- Reactor Kafka
-- Project Reactor
+The **active** infrastructure definition is in `k8s/infrastructure/`.

@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: booking-ingress
+  annotations:
+    # Use the nginx ingress controller
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - http:
+      paths:
+      # Catalog Service
+      - path: /api/catalog
+        pathType: Prefix
+        backend:
+          service:
+            name: catalog-service
+            port:
+              number: 8081
+      # Booking Service
+      - path: /api/catalog/bookings
+        pathType: Prefix
+        backend:
+          service:
+            name: catalog-service
+            port:
+              number: 8081
+      # Booking Service (Direct access if needed, though usually via Catalog)
+      # But let's map it just in case for verification
+      - path: /api/bookings
+        pathType: Prefix
+        backend:
+          service:
+            name: booking-service
+            port:
+              number: 8080
+      # Notification Service
+      - path: /api/notifications
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 8082

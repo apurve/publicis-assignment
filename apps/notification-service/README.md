@@ -22,7 +22,6 @@ This service demonstrates **Spring Reactive Programming** concepts:
 - **Multi-channel Notifications** - Email, Push, SMS, In-App
 - **Real-time Streaming** - Server-Sent Events for live updates
 - **Non-blocking Database** - R2DBC with H2
-- **Service Discovery** - Registers with Eureka
 - **OpenAPI Documentation** - Swagger UI
 
 ---
@@ -43,31 +42,23 @@ Notification Service (WebFlux)
 
 ## 🚀 Quick Start
 
-### 1. Start Infrastructure
+### 1. Start System
 
 ```bash
-cd apps/infrastructure
-docker-compose up -d
+./deploy_k8s.sh
 ```
 
-### 2. Start Dependencies
+### 2. Access Logs & Service
 
 ```bash
-# Service Discovery
-cd apps/service-discovery && mvn spring-boot:run
+# View Logs
+kubectl logs deployment/notification-service -f
 
-# Config Server
-cd apps/config-server && mvn spring-boot:run
+# Local Access
+kubectl port-forward svc/notification-service 8082:8082
 ```
 
-### 3. Start Notification Service
-
-```bash
-cd apps/notification-service
-mvn spring-boot:run
-```
-
-The service starts on **port 8082**.
+The service listens on **port 8082**.
 
 ---
 

@@ -74,20 +74,23 @@ Submit a booking request (publishes to Kafka topic `booking-requests`).
 
 ## Running the Service
 
-```bash
-mvn spring-boot:run
-```
+The service is designed to run in **Kubernetes**.
 
-The service runs on port **8081** and registers with Eureka.
+1. **Deploy System**:
+   ```bash
+   ./deploy_k8s.sh
+   # OR
+   kubectl apply -f ../../k8s/apps/catalog-service.yaml
+   ```
+
+2. **Access Locally**:
+   ```bash
+   kubectl port-forward svc/catalog-service 8081:8081
+   ```
 
 ## Prerequisites
 
-- **Infrastructure** (`docker-compose up -d` in `/infrastructure`):
-  - Kafka (port 9093)
-  - Zookeeper (port 2181)
-  - Redis (port 6379)
-- **Eureka Server** (port 8761)
-- **Config Server** (port 8888)
+- **Infrastructure**: Kafka (9092) and Redis (6379) running in Kubernetes.
 
 ## Architecture
 
@@ -117,33 +120,13 @@ curl http://localhost:8081/api/catalog/services
 # Second request - should log "Fetching services from Redis cache"
 curl http://localhost:8081/api/catalog/services
 
-# Check Redis directly
-docker exec infrastructure-redis-1 redis-cli GET catalog:services
-
-# Check TTL (should be ~600 seconds)
-docker exec infrastructure-redis-1 redis-cli TTL catalog:services
+# Check Redis directly (find redis pod name first)
+kubectl exec deployment/redis -- redis-cli GET catalog:services
 ```
 
 ## Configuration
 
-The service is configured via `application.yml`:
-
-```yaml
-spring:
-  application:
-    name: catalog-service
-  data:
-    redis:
-      host: localhost
-      port: 6379
-  kafka:
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: com.example.catalogservice.serializer.BookingRequestSerializer
-
-server:
-  port: 8081
-```
+The service is configured via ConfigMap `catalog-config` mounted at `/app/config/application.yml`.
 
 ## Dependencies
 
@@ -151,6 +134,4 @@ Key dependencies (from `pom.xml`):
 - Spring Boot Starter Web
 - Spring Boot Starter Data Redis
 - Spring Kafka
-- Spring Cloud Config
-- Spring Cloud Netflix Eureka Client
 - SpringDoc OpenAPI

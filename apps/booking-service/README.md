@@ -9,8 +9,7 @@ A microservice for managing apartment amenity bookings with comprehensive OpenAP
   - User maintenance fee verification
   - Amenity availability checking
 - **H2 In-Memory Database** for prototype
-- **Service Discovery** integration with Eureka
-- **Configuration Management** via Config Server
+- **Configuration Management** via Kubernetes ConfigMaps
 - **OpenAPI 3.0 Documentation** with Swagger UI
 
 ## API Documentation
@@ -20,6 +19,7 @@ Access interactive API documentation at:
 ```
 http://localhost:8080/swagger-ui/index.html
 ```
+*(Requires `kubectl port-forward svc/booking-service 8080:8080`)*
 
 ### OpenAPI Specification
 Download the complete OpenAPI spec at:
@@ -76,11 +76,19 @@ Creates a new booking for an amenity.
 
 ## Running the Service
 
-```bash
-mvn spring-boot:run
-```
+The service is designed to run in **Kubernetes**.
 
-The service will start on port 8080 and register with Eureka.
+1. **Deploy System**:
+   ```bash
+   ./deploy_k8s.sh
+   # OR
+   kubectl apply -f ../../k8s/apps/booking-service.yaml
+   ```
+
+2. **Access Locally**:
+   ```bash
+   kubectl port-forward svc/booking-service 8080:8080
+   ```
 
 ## Architecture
 
@@ -102,13 +110,11 @@ The service will start on port 8080 and register with Eureka.
 
 ## Configuration
 
-The service fetches configuration from Config Server at startup. All configuration (including Database and Kafka settings) is managed centrally in the Config Server.
+The service fetches configuration from the Kubernetes ConfigMap `booking-config` mounted at `/app/config/application.yml`.
 
 ## Dependencies
 
 - Spring Boot 3.2.0
-- Spring Cloud Config Client
-- Spring Cloud Netflix Eureka Client
 - Spring Data JPA
 - H2 Database
 - **SpringDoc OpenAPI 2.3.0**

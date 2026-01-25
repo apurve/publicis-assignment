@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+
 
 /**
  * Reactive Notification Service using Spring WebFlux
@@ -16,7 +16,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  * - Server-Sent Events (SSE) for real-time notifications
  */
 @SpringBootApplication
-@EnableDiscoveryClient
+
 @OpenAPIDefinition(
     info = @Info(
         title = "Notification Service API (Reactive)",

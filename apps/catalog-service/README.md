@@ -78,9 +78,11 @@ The service is designed to run in **Kubernetes**.
 
 1. **Deploy System**:
    ```bash
-   ./deploy_k8s.sh
-   # OR
-   kubectl apply -f ../../k8s/apps/catalog-service.yaml
+   # Using Terraform (Recommended)
+   cd terraform && terraform apply
+   
+   # Using local script
+   ./deploy_k8s_local.sh
    ```
 
 2. **Access Locally**:

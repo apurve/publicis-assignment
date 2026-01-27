@@ -45,7 +45,11 @@ Notification Service (WebFlux)
 ### 1. Start System
 
 ```bash
-./deploy_k8s.sh
+# Using Terraform (Recommended)
+cd terraform && terraform apply
+
+# Using local script
+./deploy_k8s_local.sh
 ```
 
 ### 2. Access Logs & Service

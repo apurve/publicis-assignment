@@ -17,9 +17,9 @@ A microservice for managing apartment amenity bookings with comprehensive OpenAP
 ### Swagger UI
 Access interactive API documentation at:
 ```
-http://localhost:8080/swagger-ui/index.html
+http://<LB_IP>:80/swagger-ui/index.html
 ```
-*(Requires `kubectl port-forward svc/booking-service 8080:8080`)*
+*(LB_IP is the external IP of `booking-service-external`)*
 
 ### OpenAPI Specification
 Download the complete OpenAPI spec at:
@@ -80,9 +80,11 @@ The service is designed to run in **Kubernetes**.
 
 1. **Deploy System**:
    ```bash
-   ./deploy_k8s.sh
-   # OR
-   kubectl apply -f ../../k8s/apps/booking-service.yaml
+   # Using Terraform (Recommended)
+   cd terraform && terraform apply
+   
+   # Using local script
+   ./deploy_k8s_local.sh
    ```
 
 2. **Access Locally**:

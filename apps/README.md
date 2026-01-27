@@ -20,14 +20,17 @@ Expected Output:
 
 ## 2. Accessing Services
 
-### Option 1: Ingress (Recommended)
-You can access services directly via `localhost` (Port 80):
+### Option 1: Azure Load Balancer (Cloud Deployment)
+Access services via their respective external IPs:
 
-- **Catalog API**: `http://localhost/api/catalog/services`
-- **Booking API**: `http://localhost/api/bookings`
-- **Notification Stream**: `http://localhost/api/notifications/stream/user/1`
+- **Catalog API**: `http://<CATALOG_LB_IP>/api/catalog/services`
+- **Booking API**: `http://<BOOKING_LB_IP>/api/bookings`
+- **Notification Stream**: `http://<NOTIFICATION_LB_IP>/api/notifications/stream/user/1`
 
-### Option 2: Port Forwarding (Legacy/Debug)
+> [!TIP]
+> Run `kubectl get svc` to find the external IPs of the `-external` services.
+
+### Option 2: Port Forwarding (Local/Debug)
 You can also forward ports to access services individually:
 
 ```bash

@@ -11,6 +11,7 @@ Contains the application workloads and configuration.
   - `booking-service.yaml`
   - `catalog-service.yaml`
   - `notification-service.yaml`
+  - `load-balancers.yaml` (External Access)
 
 - **Configuration (ConfigMaps)**:
   - `configmap-booking.yaml`

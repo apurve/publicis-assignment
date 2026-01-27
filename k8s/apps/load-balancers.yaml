@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: booking-service-external
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: booking-service
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-service-external
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: catalog-service
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service-external
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: notification-service
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8082
